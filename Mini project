@@ -1,0 +1,520 @@
+import pandas as pd
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import classification_report
+column_names = ['Gender', 'Age', 'Debt', 'Married', 'Bank Customer', 'Education Level', 'Ethnicity', 'Years Employed', 'Prior Default', 'Employed','Credit Score', 'Drivers License', 'Citizen',	'Zip Code',	'Income', 'Approved']
+    data = pd.read_csv(r'crx.data', names = column_names)
+data.head()
+Gender	Age	Debt	Married	Bank Customer	Education Level	Ethnicity	Years Employed	Prior Default	Employed	Credit Score	Drivers License	Citizen	Zip Code	Income	Approved
+0	b	30.83	0.000	u	g	w	v	1.25	t	t	1	f	g	00202	0	+
+1	a	58.67	4.460	u	g	q	h	3.04	t	t	6	f	g	00043	560	+
+2	a	24.50	0.500	u	g	q	h	1.50	t	f	0	f	g	00280	824	+
+3	b	27.83	1.540	u	g	w	v	3.75	t	t	5	t	g	00100	3	+
+4	b	20.17	5.625	u	g	w	v	1.71	t	f	0	f	s	00120	0	+
+data.info()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 690 entries, 0 to 689
+Data columns (total 16 columns):
+ #   Column           Non-Null Count  Dtype  
+---  ------           --------------  -----  
+ 0   Gender           690 non-null    object 
+ 1   Age              690 non-null    object 
+ 2   Debt             690 non-null    float64
+ 3   Married          690 non-null    object 
+ 4   Bank Customer    690 non-null    object 
+ 5   Education Level  690 non-null    object 
+ 6   Ethnicity        690 non-null    object 
+ 7   Years Employed   690 non-null    float64
+ 8   Prior Default    690 non-null    object 
+ 9   Employed         690 non-null    object 
+ 10  Credit Score     690 non-null    int64  
+ 11  Drivers License  690 non-null    object 
+ 12  Citizen          690 non-null    object 
+ 13  Zip Code         690 non-null    object 
+ 14  Income           690 non-null    int64  
+ 15  Approved         690 non-null    object 
+dtypes: float64(2), int64(2), object(12)
+memory usage: 86.4+ KB
+data.shape
+(690, 16)
+#sns ip
+sns.heatmap(data.corr(), square=True, annot=True, cmap='RdYlGn')
+<AxesSubplot:>
+
+sns.countplot(data = data, x = 'Approved')
+<AxesSubplot:xlabel='Approved', ylabel='count'>
+
+data.skew()
+C:\Users\USER\AppData\Local\Temp\ipykernel_16376\1188251951.py:1: FutureWarning: Dropping of nuisance columns in DataFrame reductions (with 'numeric_only=None') is deprecated; in a future version this will raise TypeError.  Select only valid columns before calling the reduction.
+  data.skew()
+Debt               1.488813
+Years Employed     2.891330
+Credit Score       5.152520
+Income            13.140655
+dtype: float64
+ax1= data['Income'].plot.hist(bins=50, alpha=0.5, title='Income')
+
+#Missing value
+data.isnull().sum()
+Gender             0
+Age                0
+Debt               0
+Married            0
+Bank Customer      0
+Education Level    0
+Ethnicity          0
+Years Employed     0
+Prior Default      0
+Employed           0
+Credit Score       0
+Drivers License    0
+Citizen            0
+Zip Code           0
+Income             0
+Approved           0
+dtype: int64
+data.head(10)
+Gender	Age	Debt	Married	Bank Customer	Education Level	Ethnicity	Years Employed	Prior Default	Employed	Credit Score	Drivers License	Citizen	Zip Code	Income	Approved
+0	b	30.83	0.000	u	g	w	v	1.250	t	t	1	f	g	00202	0	+
+1	a	58.67	4.460	u	g	q	h	3.040	t	t	6	f	g	00043	560	+
+2	a	24.50	0.500	u	g	q	h	1.500	t	f	0	f	g	00280	824	+
+3	b	27.83	1.540	u	g	w	v	3.750	t	t	5	t	g	00100	3	+
+4	b	20.17	5.625	u	g	w	v	1.710	t	f	0	f	s	00120	0	+
+5	b	32.08	4.000	u	g	m	v	2.500	t	f	0	t	g	00360	0	+
+6	b	33.17	1.040	u	g	r	h	6.500	t	f	0	t	g	00164	31285	+
+7	a	22.92	11.585	u	g	cc	v	0.040	t	f	0	f	g	00080	1349	+
+8	b	54.42	0.500	y	p	k	h	3.960	t	f	0	f	g	00180	314	+
+9	b	42.50	4.915	y	p	w	v	3.165	t	f	0	t	g	00052	1442	+
+data[data.isin(["?"]).any(axis=1)]
+Gender	Age	Debt	Married	Bank Customer	Education Level	Ethnicity	Years Employed	Prior Default	Employed	Credit Score	Drivers License	Citizen	Zip Code	Income	Approved
+71	b	34.83	4.000	u	g	d	bb	12.500	t	f	0	t	g	?	0	-
+83	a	?	3.500	u	g	d	v	3.000	t	f	0	t	g	00300	0	-
+86	b	?	0.375	u	g	d	v	0.875	t	f	0	t	s	00928	0	-
+92	b	?	5.000	y	p	aa	v	8.500	t	f	0	f	g	00000	0	-
+97	b	?	0.500	u	g	c	bb	0.835	t	f	0	t	s	00320	0	-
+202	b	24.83	2.750	u	g	c	v	2.250	t	t	6	f	g	?	600	+
+206	a	71.58	0.000	?	?	?	?	0.000	f	f	0	f	p	?	0	+
+243	a	18.75	7.500	u	g	q	v	2.710	t	t	5	f	g	?	26726	+
+248	?	24.50	12.750	u	g	c	bb	4.750	t	t	2	f	g	00073	444	+
+254	b	?	0.625	u	g	k	v	0.250	f	f	0	f	g	00380	2010	-
+270	b	37.58	0.000	?	?	?	?	0.000	f	f	0	f	p	?	0	+
+278	b	24.58	13.500	y	p	ff	ff	0.000	f	f	0	f	g	?	0	-
+286	a	?	1.500	u	g	ff	ff	0.000	f	t	2	t	g	00200	105	-
+327	?	40.83	3.500	u	g	i	bb	0.500	f	f	0	f	s	01160	0	-
+329	b	?	4.000	y	p	i	v	0.085	f	f	0	t	g	00411	0	-
+330	b	20.42	0.000	?	?	?	?	0.000	f	f	0	f	p	?	0	-
+346	?	32.25	1.500	u	g	c	v	0.250	f	f	0	t	g	00372	122	-
+374	?	28.17	0.585	u	g	aa	v	0.040	f	f	0	f	g	00260	1004	-
+406	a	40.33	8.125	y	p	k	v	0.165	f	t	2	f	g	?	18	-
+445	a	?	11.250	u	g	ff	ff	0.000	f	f	0	f	g	?	5200	-
+450	b	?	3.000	y	p	i	bb	7.000	f	f	0	f	g	00000	1	-
+453	?	29.75	0.665	u	g	w	v	0.250	f	f	0	t	g	00300	0	-
+456	b	34.58	0.000	?	?	?	?	0.000	f	f	0	f	p	?	0	-
+479	?	26.50	2.710	y	p	?	?	0.085	f	f	0	f	s	00080	0	-
+489	?	45.33	1.000	u	g	q	v	0.125	f	f	0	t	g	00263	0	-
+500	b	?	4.000	u	g	x	v	5.000	t	t	3	t	g	00290	2279	+
+515	b	?	10.500	u	g	x	v	6.500	t	f	0	f	g	00000	0	+
+520	?	20.42	7.500	u	g	k	v	1.500	t	t	1	f	g	00160	234	+
+539	b	80.25	5.500	u	g	?	?	0.540	t	f	0	f	g	00000	340	-
+592	b	23.17	0.000	?	?	?	?	0.000	f	f	0	f	p	?	0	+
+598	?	20.08	0.125	u	g	q	v	1.000	f	t	1	f	g	00240	768	+
+601	?	42.25	1.750	y	p	?	?	0.000	f	f	0	t	g	00150	1	-
+608	b	?	0.040	y	p	d	v	4.250	f	f	0	t	g	00460	0	-
+622	a	25.58	0.000	?	?	?	?	0.000	f	f	0	f	p	?	0	+
+626	b	22.00	7.835	y	p	i	bb	0.165	f	f	0	t	g	?	0	-
+641	?	33.17	2.250	y	p	cc	v	3.500	f	f	0	t	g	00200	141	-
+673	?	29.50	2.000	y	p	e	h	2.000	f	f	0	f	g	00256	17	-
+#Replace the value
+data = data.replace('?', np.nan)
+data.info()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 690 entries, 0 to 689
+Data columns (total 16 columns):
+ #   Column           Non-Null Count  Dtype  
+---  ------           --------------  -----  
+ 0   Gender           678 non-null    object 
+ 1   Age              678 non-null    object 
+ 2   Debt             690 non-null    float64
+ 3   Married          684 non-null    object 
+ 4   Bank Customer    684 non-null    object 
+ 5   Education Level  681 non-null    object 
+ 6   Ethnicity        681 non-null    object 
+ 7   Years Employed   690 non-null    float64
+ 8   Prior Default    690 non-null    object 
+ 9   Employed         690 non-null    object 
+ 10  Credit Score     690 non-null    int64  
+ 11  Drivers License  690 non-null    object 
+ 12  Citizen          690 non-null    object 
+ 13  Zip Code         677 non-null    object 
+ 14  Income           690 non-null    int64  
+ 15  Approved         690 non-null    object 
+dtypes: float64(2), int64(2), object(12)
+memory usage: 86.4+ KB
+#Preprocessing the data
+data['Age'] = data['Age'].astype('float').round()
+def prep_data(dataframe):
+
+    # Make a copy of the dataset, to avoid corruption
+    df = dataframe.copy()
+
+    # Impute the missing values with mean imputation
+    df.fillna(df.mean(), inplace=True)
+
+    # Rename the target variables into numeric values
+    df.loc[df['Approved'] == '+', 'Approved'] = 1
+    df.loc[df['Approved'] == '-', 'Approved'] = 0
+
+    return(df)
+
+# Input the orginal dataset into the function
+data = prep_data(data)
+C:\Users\USER\AppData\Local\Temp\ipykernel_16376\1824650727.py:7: FutureWarning: Dropping of nuisance columns in DataFrame reductions (with 'numeric_only=None') is deprecated; in a future version this will raise TypeError.  Select only valid columns before calling the reduction.
+  df.fillna(df.mean(), inplace=True)
+# Iterate over each column
+for col in data.columns:
+
+    # Check if the column is of object type
+    if data[col].dtype == 'object':
+
+        # Impute with the most frequent value
+        data = data.fillna(data[col].value_counts().index[0])
+# Instantiate LabelEncoder
+le = LabelEncoder()
+
+# Iterate over all the values of each column, extracting their dtypes and transforming them into numeric types.
+for col in data.columns:
+
+    #Compare
+    if data[col].dtype == 'object':
+
+        # Use LabelEncoder to do the numeric transformation
+        data[col] = le.fit_transform(data[col])
+data.info()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 690 entries, 0 to 689
+Data columns (total 16 columns):
+ #   Column           Non-Null Count  Dtype  
+---  ------           --------------  -----  
+ 0   Gender           690 non-null    int32  
+ 1   Age              690 non-null    float64
+ 2   Debt             690 non-null    float64
+ 3   Married          690 non-null    int32  
+ 4   Bank Customer    690 non-null    int32  
+ 5   Education Level  690 non-null    int32  
+ 6   Ethnicity        690 non-null    int32  
+ 7   Years Employed   690 non-null    float64
+ 8   Prior Default    690 non-null    int32  
+ 9   Employed         690 non-null    int32  
+ 10  Credit Score     690 non-null    int64  
+ 11  Drivers License  690 non-null    int32  
+ 12  Citizen          690 non-null    int32  
+ 13  Zip Code         690 non-null    int32  
+ 14  Income           690 non-null    int64  
+ 15  Approved         690 non-null    int64  
+dtypes: float64(3), int32(10), int64(3)
+memory usage: 59.4 KB
+Train And Test
+data = data.drop([data.columns[11], data.columns[13]], axis=1)
+data = data.values
+
+X,y = data[:,0:13] , data[:,13]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+scaler = MinMaxScaler(feature_range=(0, 1))
+
+rescaledX_train = scaler.fit_transform(X_train)
+
+rescaledX_test = scaler.transform(X_test)
+logreg = LogisticRegression(solver='lbfgs')
+
+logreg.fit(rescaledX_train, y_train)
+LogisticRegression()
+In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook.
+On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.
+probas = logreg.predict_proba(rescaledX_test)
+
+y_pred = (probas[:, 1] >= 0.5).astype(int)
+
+
+confusion_matrix(y_test, y_pred)
+array([[98, 27],
+       [ 9, 94]], dtype=int64)
+print(probas)
+[[0.84175403 0.15824597]
+ [0.30079631 0.69920369]
+ [0.94181871 0.05818129]
+ [0.92511181 0.07488819]
+ [0.9734551  0.0265449 ]
+ [0.48844381 0.51155619]
+ [0.97293109 0.02706891]
+ [0.34678037 0.65321963]
+ [0.94433224 0.05566776]
+ [0.94015346 0.05984654]
+ [0.92362598 0.07637402]
+ [0.28228475 0.71771525]
+ [0.94017598 0.05982402]
+ [0.26479278 0.73520722]
+ [0.80810964 0.19189036]
+ [0.16683966 0.83316034]
+ [0.96907964 0.03092036]
+ [0.86386799 0.13613201]
+ [0.9332243  0.0667757 ]
+ [0.96575002 0.03424998]
+ [0.86236418 0.13763582]
+ [0.94195392 0.05804608]
+ [0.97193638 0.02806362]
+ [0.26580929 0.73419071]
+ [0.97511098 0.02488902]
+ [0.93146685 0.06853315]
+ [0.04932822 0.95067178]
+ [0.28149006 0.71850994]
+ [0.93546642 0.06453358]
+ [0.93221727 0.06778273]
+ [0.1524044  0.8475956 ]
+ [0.09749019 0.90250981]
+ [0.28473042 0.71526958]
+ [0.169403   0.830597  ]
+ [0.30238477 0.69761523]
+ [0.12814005 0.87185995]
+ [0.04701882 0.95298118]
+ [0.26382021 0.73617979]
+ [0.15530493 0.84469507]
+ [0.06113183 0.93886817]
+ [0.13246267 0.86753733]
+ [0.19848415 0.80151585]
+ [0.93379787 0.06620213]
+ [0.26259861 0.73740139]
+ [0.93043633 0.06956367]
+ [0.03970933 0.96029067]
+ [0.93565595 0.06434405]
+ [0.96989444 0.03010556]
+ [0.36239527 0.63760473]
+ [0.93596681 0.06403319]
+ [0.97139378 0.02860622]
+ [0.42914585 0.57085415]
+ [0.9406416  0.0593584 ]
+ [0.94292866 0.05707134]
+ [0.1402426  0.8597574 ]
+ [0.94313822 0.05686178]
+ [0.14181038 0.85818962]
+ [0.93860374 0.06139626]
+ [0.14186994 0.85813006]
+ [0.94483732 0.05516268]
+ [0.08079436 0.91920564]
+ [0.12752506 0.87247494]
+ [0.16489651 0.83510349]
+ [0.59071902 0.40928098]
+ [0.94784464 0.05215536]
+ [0.15186984 0.84813016]
+ [0.09174778 0.90825222]
+ [0.49949108 0.50050892]
+ [0.22786321 0.77213679]
+ [0.92237822 0.07762178]
+ [0.96121419 0.03878581]
+ [0.32373626 0.67626374]
+ [0.90759285 0.09240715]
+ [0.29608405 0.70391595]
+ [0.94190302 0.05809698]
+ [0.9732014  0.0267986 ]
+ [0.92424265 0.07575735]
+ [0.40253943 0.59746057]
+ [0.12535039 0.87464961]
+ [0.93952493 0.06047507]
+ [0.14663959 0.85336041]
+ [0.26609522 0.73390478]
+ [0.83565972 0.16434028]
+ [0.82875342 0.17124658]
+ [0.16511104 0.83488896]
+ [0.90639027 0.09360973]
+ [0.1007681  0.8992319 ]
+ [0.14427036 0.85572964]
+ [0.13585252 0.86414748]
+ [0.12249315 0.87750685]
+ [0.33210793 0.66789207]
+ [0.39862363 0.60137637]
+ [0.05051959 0.94948041]
+ [0.28413751 0.71586249]
+ [0.35039568 0.64960432]
+ [0.14563702 0.85436298]
+ [0.13883437 0.86116563]
+ [0.29425502 0.70574498]
+ [0.92930265 0.07069735]
+ [0.97451762 0.02548238]
+ [0.90881795 0.09118205]
+ [0.86377514 0.13622486]
+ [0.15869254 0.84130746]
+ [0.37341367 0.62658633]
+ [0.08665679 0.91334321]
+ [0.29839899 0.70160101]
+ [0.94308018 0.05691982]
+ [0.05234908 0.94765092]
+ [0.92607663 0.07392337]
+ [0.06163936 0.93836064]
+ [0.92268738 0.07731262]
+ [0.24544564 0.75455436]
+ [0.18649222 0.81350778]
+ [0.49415653 0.50584347]
+ [0.2868715  0.7131285 ]
+ [0.74662132 0.25337868]
+ [0.05494426 0.94505574]
+ [0.12899509 0.87100491]
+ [0.84528916 0.15471084]
+ [0.14173212 0.85826788]
+ [0.93446237 0.06553763]
+ [0.94123647 0.05876353]
+ [0.12754415 0.87245585]
+ [0.83947496 0.16052504]
+ [0.96240237 0.03759763]
+ [0.33400349 0.66599651]
+ [0.92698075 0.07301925]
+ [0.89255049 0.10744951]
+ [0.0930149  0.9069851 ]
+ [0.12805108 0.87194892]
+ [0.35162947 0.64837053]
+ [0.91969798 0.08030202]
+ [0.37342984 0.62657016]
+ [0.93593774 0.06406226]
+ [0.12183752 0.87816248]
+ [0.11903088 0.88096912]
+ [0.1295349  0.8704651 ]
+ [0.13292921 0.86707079]
+ [0.97364544 0.02635456]
+ [0.11223479 0.88776521]
+ [0.29012812 0.70987188]
+ [0.30326607 0.69673393]
+ [0.08101105 0.91898895]
+ [0.0975722  0.9024278 ]
+ [0.94752234 0.05247766]
+ [0.81416756 0.18583244]
+ [0.97682617 0.02317383]
+ [0.28367699 0.71632301]
+ [0.38183646 0.61816354]
+ [0.92575771 0.07424229]
+ [0.9749002  0.0250998 ]
+ [0.93233533 0.06766467]
+ [0.96333255 0.03666745]
+ [0.1278088  0.8721912 ]
+ [0.83282152 0.16717848]
+ [0.11953135 0.88046865]
+ [0.08067426 0.91932574]
+ [0.17166861 0.82833139]
+ [0.9364996  0.0635004 ]
+ [0.81558634 0.18441366]
+ [0.10960376 0.89039624]
+ [0.9736282  0.0263718 ]
+ [0.92578549 0.07421451]
+ [0.97050267 0.02949733]
+ [0.96948185 0.03051815]
+ [0.97160447 0.02839553]
+ [0.94225852 0.05774148]
+ [0.14988064 0.85011936]
+ [0.93264054 0.06735946]
+ [0.28793642 0.71206358]
+ [0.9237617  0.0762383 ]
+ [0.94196621 0.05803379]
+ [0.33198891 0.66801109]
+ [0.94538353 0.05461647]
+ [0.55530324 0.44469676]
+ [0.9249756  0.0750244 ]
+ [0.93293517 0.06706483]
+ [0.93474885 0.06525115]
+ [0.92341988 0.07658012]
+ [0.94226527 0.05773473]
+ [0.84677419 0.15322581]
+ [0.2431736  0.7568264 ]
+ [0.32686641 0.67313359]
+ [0.80309391 0.19690609]
+ [0.10533039 0.89466961]
+ [0.9206587  0.0793413 ]
+ [0.45747377 0.54252623]
+ [0.36785319 0.63214681]
+ [0.29643178 0.70356822]
+ [0.14107754 0.85892246]
+ [0.93297472 0.06702528]
+ [0.22925742 0.77074258]
+ [0.96228335 0.03771665]
+ [0.27894348 0.72105652]
+ [0.23905455 0.76094545]
+ [0.15687797 0.84312203]
+ [0.09313357 0.90686643]
+ [0.07716778 0.92283222]
+ [0.13720991 0.86279009]
+ [0.18494676 0.81505324]
+ [0.31978137 0.68021863]
+ [0.11201414 0.88798586]
+ [0.97365313 0.02634687]
+ [0.13171115 0.86828885]
+ [0.32916027 0.67083973]
+ [0.93155311 0.06844689]
+ [0.13154495 0.86845505]
+ [0.14092884 0.85907116]
+ [0.97549197 0.02450803]
+ [0.96506617 0.03493383]
+ [0.12974318 0.87025682]
+ [0.82926149 0.17073851]
+ [0.28244503 0.71755497]
+ [0.36419827 0.63580173]
+ [0.94440831 0.05559169]
+ [0.84675919 0.15324081]
+ [0.3111207  0.6888793 ]
+ [0.94138887 0.05861113]
+ [0.79281653 0.20718347]
+ [0.92200412 0.07799588]
+ [0.37948071 0.62051929]
+ [0.12332214 0.87667786]
+ [0.24053439 0.75946561]
+ [0.9743374  0.0256626 ]
+ [0.06813154 0.93186846]
+ [0.96108717 0.03891283]
+ [0.93493426 0.06506574]
+ [0.97212268 0.02787732]]
+fpr, tpr, thresholds = roc_curve(y_test, probas[:, 1])
+roc_auc = auc(fpr,tpr)
+plt.figure(figsize=(10,7))
+plt.title('Receiver Characteristic',color="yellow")
+plt.plot(fpr, tpr, 'b',label='AUC = %0.3f' % roc_auc)
+plt.legend(loc='lower center')
+plt.plot([0,1], [0,1],'r--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.01])
+plt.ylabel('True Rate (+)',color="Green")
+plt.xlabel('False Rate (-)',color="orange")
+plt.show()
+
+optimal_idx = np.argmax(tpr - fpr)
+optimal_threshold = thresholds[optimal_idx]
+print('Optimal Threshold =', optimal_threshold)
+Optimal Threshold = 0.4446967567815103
+print(classification_report(y_test,y_pred.round()))
+              precision    recall  f1-score   support
+
+         0.0       0.92      0.78      0.84       125
+         1.0       0.78      0.91      0.84       103
+
+    accuracy                           0.84       228
+   macro avg       0.85      0.85      0.84       228
+weighted avg       0.85      0.84      0.84       228
+
+Grid Search
+tol = [0.01, 0.001, 0.0001]
+max_iter = [100, 150, 200]
+penalty = ['l2']
+param_grid = dict(tol=tol, max_iter=max_iter, penalty=penalty)
+print(param_grid)
+{'tol': [0.01, 0.001, 0.0001], 'max_iter': [100, 150, 200], 'penalty': ['l2']}
+grid_model = GridSearchCV(estimator=logreg, param_grid=param_grid, cv=5)
+rescaledX = scaler.fit_transform(X)
+grid_model_result = grid_model.fit(rescaledX, y)
+best_score, best_params = grid_model_result.best_score_, grid_model_result.best_params_
+print("Best: %s using %s" % (best_score, best_params))
+Best: 0.8507246376811594 using {'max_iter': 100, 'penalty': 'l2', 'tol': 0.01}
+ 
